@@ -16,7 +16,7 @@ system. The code supports three numerical integration methods:
 This submission includes code for:
 1. The default solar-system simulation with animation
 2. Experiment 1: orbital periods
-3. Experiment 1 supplementary timestep study
+3. Experiment 1 supplementary timesteps study
 4. Experiment 2: energy conservation and integration-method comparison
 5. Experiment 4: planetary alignment analysis
 
