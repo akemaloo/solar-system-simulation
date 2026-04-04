@@ -1,6 +1,6 @@
 # Solar System Simulation
 
-A many-body Solar System simulation written in Python for a Computer Simulation project.  
+A many-body Solar System simulation written in Python for a Computer Simulation project.
 The model simulates the Sun, Mercury, Venus, Earth, Mars, and Jupiter in two dimensions and compares different numerical integration methods.
 
 ## Overview
@@ -21,7 +21,7 @@ The codebase is fully object-oriented and uses one shared simulation core for th
 
 ## Experiments completed
 
-### Experiment 1 — Orbital periods
+### Experiment 1 - Orbital periods
 The simulated orbital periods of Mercury, Venus, Earth, Mars, and Jupiter were compared against NASA sidereal values.
 
 Key result:
@@ -29,7 +29,7 @@ Key result:
 - The timestep study showed clear numerical convergence.
 - Beyond a certain point, reducing the timestep further gave diminishing returns because modelling assumptions dominated the remaining error.
 
-### Experiment 2 — Energy conservation
+### Experiment 2 - Energy conservation
 The long-term energy behaviour of Beeman, Euler-Cromer, and Direct Euler was compared.
 
 Key result:
@@ -37,24 +37,24 @@ Key result:
 - **Euler-Cromer** remained bounded but was less accurate.
 - **Direct Euler** showed strong secular drift and was unsuitable for accurate long-term orbital simulation.
 
-### Experiment 4 — Planetary alignment
+### Experiment 4 - Planetary alignment
 Five-planet alignments were detected using a **mean-angle criterion** with multiple angular thresholds.
 
 Key result:
-- Under a strict **5°** threshold, alignments were extremely rare.
+- Under a strict **5 deg** threshold, alignments were extremely rare.
 - Relaxing the threshold produced many more events.
 - The intervals between events were irregular rather than periodic.
 
 ## Example results
 
 ### Experiment 1: timestep study
-![Experiment 1 timestep study](docs/images/experiment1_timestep_study.png)
+![Experiment 1 timestep study](docs/experiment1_timestep_study.png)
 
 ### Experiment 2: energy drift comparison
-![Experiment 2 energy drift comparison](docs/images/experiment2_abs_relative_drift_comparison.png)
+![Experiment 2 energy drift comparison](docs/experiment2_abs_relative_drift_comparison.png)
 
 ### Experiment 4: alignment count vs threshold
-![Experiment 4 threshold counts](docs/images/experiment4_threshold_counts.png)
+![Experiment 4 threshold counts](docs/experiment4_threshold_counts.png)
 
 ## Project structure
 
@@ -62,6 +62,8 @@ Key result:
 data/
 runs/
 solar_sim/
+docs/
 README.txt
 README.md
-solar-system-simulation-report.pdf
+solar-system-simulations-report.pdf
+```

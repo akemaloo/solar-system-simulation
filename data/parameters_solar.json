@@ -1,0 +1,39 @@
+{
+  "bodies": [
+    {
+      "name": "sun",
+      "mass": 332946.0,
+      "colour": "gold"
+    },
+    {
+      "name": "mercury",
+      "mass": 0.0553,
+      "orbital_radius": 0.387098,
+      "colour": "slategray"
+    },
+    {
+      "name": "venus",
+      "mass": 0.815,
+      "orbital_radius": 0.723332,
+      "colour": "peru"
+    },
+    {
+      "name": "earth",
+      "mass": 1.0,
+      "orbital_radius": 1.0,
+      "colour": "tab:blue"
+    },
+    {
+      "name": "mars",
+      "mass": 0.107,
+      "orbital_radius": 1.523679,
+      "colour": "firebrick"
+    },
+    {
+      "name": "jupiter",
+      "mass": 317.8,
+      "orbital_radius": 5.2044,
+      "colour": "darkorange"
+    }
+  ]
+}
