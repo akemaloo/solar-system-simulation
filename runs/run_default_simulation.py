@@ -102,7 +102,7 @@ def main() -> None:
 
     orbit_figure, orbit_animation = animate_orbits(
         results,
-        title="Default simulation: animated solar system",
+        title="Default simulation: animated solar system (3D view)",
         interval=20,
         trail_length=150,
         frame_stride=1,

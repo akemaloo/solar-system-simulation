@@ -3,9 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
+from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 if TYPE_CHECKING:
     from .simulation import SimulationResults
@@ -18,6 +20,68 @@ def _finalise_figure(fig: plt.Figure, save_path: str | Path | None) -> None:
         output_path = Path(save_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(output_path, dpi=200, bbox_inches="tight")
+
+
+def _split_coordinates(positions: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    if positions.ndim != 2 or positions.shape[1] not in {2, 3}:
+        raise ValueError("Position arrays must have shape (n_points, 2) or (n_points, 3).")
+
+    x = positions[:, 0]
+    y = positions[:, 1]
+
+    if positions.shape[1] == 2:
+        z = np.zeros(len(positions), dtype=float)
+    else:
+        z = positions[:, 2]
+
+    return x, y, z
+
+
+def _with_alpha(colour: str | tuple[float, float, float] | tuple[float, float, float, float], alpha: float) -> tuple[float, float, float, float]:
+    red, green, blue, _ = mcolors.to_rgba(colour)
+    return red, green, blue, alpha
+
+
+def _body_marker_sizes(name: str) -> tuple[float, float]:
+    base_sizes = {
+        "sun": 16.0,
+        "mercury": 4.2,
+        "venus": 5.0,
+        "earth": 5.4,
+        "mars": 4.6,
+        "jupiter": 8.8,
+    }
+    core_size = base_sizes.get(name.lower(), 5.0)
+    glow_size = core_size * 2.15
+    return glow_size, core_size
+
+
+def _make_star_field(
+    axis_limit: float,
+    z_limit: float,
+    count: int = 700,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    rng = np.random.default_rng(42)
+    azimuth = rng.uniform(0.0, 2.0 * np.pi, count)
+    cos_polar = rng.uniform(-1.0, 1.0, count)
+    polar = np.arccos(cos_polar)
+    radius = rng.uniform(axis_limit * 1.35, axis_limit * 2.15, count)
+
+    x = radius * np.sin(polar) * np.cos(azimuth)
+    y = radius * np.sin(polar) * np.sin(azimuth)
+    z = radius * np.cos(polar) * (z_limit / axis_limit)
+
+    brightness = rng.uniform(0.35, 1.0, count)
+    sizes = rng.uniform(2.0, 11.0, count) * brightness
+    colours = np.column_stack(
+        [
+            np.full(count, 0.86),
+            np.full(count, 0.91),
+            np.full(count, 1.0),
+            0.18 + 0.55 * brightness,
+        ]
+    )
+    return x, y, z, sizes, colours
 
 
 def plot_orbits(
@@ -73,36 +137,135 @@ def animate_orbits(
         frame_indices.append(len(results.times) - 1)
 
     all_positions = np.vstack(list(results.positions_history.values()))
-    max_extent = float(np.max(np.abs(all_positions)))
-    axis_limit = max(1.0, max_extent * 1.1)
+    x_all, y_all, z_all = _split_coordinates(all_positions)
+    axis_limit = max(
+        1.0,
+        float(
+            max(
+                np.max(np.abs(x_all)),
+                np.max(np.abs(y_all)),
+                np.max(np.abs(z_all)),
+            )
+        )
+        * 1.1,
+    )
+    z_limit = max(axis_limit * 0.35, float(np.max(np.abs(z_all))) * 1.2, 0.2)
 
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.set_title(title)
-    ax.set_xlabel("x [AU]")
-    ax.set_ylabel("y [AU]")
-    ax.set_aspect("equal", adjustable="box")
+    fig = plt.figure(figsize=(8.8, 8.4))
+    ax: Axes3D = fig.add_subplot(111, projection="3d")
+    fig.patch.set_facecolor("#02040a")
+    ax.set_facecolor("#02040a")
+    ax.set_title(title, color="white", pad=12)
     ax.set_xlim(-axis_limit, axis_limit)
     ax.set_ylim(-axis_limit, axis_limit)
-    ax.grid(True, alpha=0.25)
+    ax.set_zlim(-z_limit, z_limit)
+    ax.set_box_aspect((1.0, 1.0, max(0.35, z_limit / axis_limit)))
+    ax.view_init(elev=24, azim=35)
+    if hasattr(ax, "set_proj_type"):
+        ax.set_proj_type("persp", focal_length=0.92)
 
-    line_artists: dict[str, plt.Line2D] = {}
-    point_artists: dict[str, plt.Line2D] = {}
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
+        axis.pane.set_facecolor((0.0, 0.0, 0.0, 0.0))
+        axis.pane.set_edgecolor((0.0, 0.0, 0.0, 0.0))
+
+    ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    ax.set_zlabel("")
+    ax.xaxis.line.set_color((0.0, 0.0, 0.0, 0.0))
+    ax.yaxis.line.set_color((0.0, 0.0, 0.0, 0.0))
+    ax.zaxis.line.set_color((0.0, 0.0, 0.0, 0.0))
+    ax.set_axis_off()
+
+    stars_x, stars_y, stars_z, star_sizes, star_colours = _make_star_field(axis_limit, z_limit)
+    ax.scatter(
+        stars_x,
+        stars_y,
+        stars_z,
+        s=star_sizes,
+        c=star_colours,
+        depthshade=False,
+        linewidths=0.0,
+    )
+
+    glow_line_artists: dict[str, object] = {}
+    line_artists: dict[str, object] = {}
+    glow_point_artists: dict[str, object] = {}
+    point_artists: dict[str, object] = {}
 
     for name, positions in results.positions_history.items():
         colour = results.body_colours.get(name, None)
         label = name.capitalize()
+        glow_size, core_size = _body_marker_sizes(name)
+        trail_alpha = 0.16 if name == "sun" else 0.38
+        glow_alpha = 0.08 if name == "sun" else 0.15
 
-        line_artist, = ax.plot([], [], color=colour, linewidth=1.5, alpha=0.85, label=label)
-        point_artist, = ax.plot([], [], marker="o", color=colour, markersize=6, linestyle="None")
+        glow_line_artist, = ax.plot(
+            [],
+            [],
+            [],
+            color=_with_alpha(colour or "white", glow_alpha),
+            linewidth=4.0,
+            solid_capstyle="round",
+        )
+        line_artist, = ax.plot(
+            [],
+            [],
+            [],
+            color=_with_alpha(colour or "white", trail_alpha),
+            linewidth=1.45 if name != "sun" else 1.1,
+            solid_capstyle="round",
+            label=label,
+        )
+        glow_point_artist, = ax.plot(
+            [],
+            [],
+            [],
+            marker="o",
+            color=_with_alpha(colour or "white", 0.18 if name != "sun" else 0.28),
+            markersize=glow_size,
+            linestyle="None",
+        )
+        point_artist, = ax.plot(
+            [],
+            [],
+            [],
+            marker="o",
+            color=_with_alpha(colour or "white", 1.0),
+            markeredgecolor=_with_alpha("white", 0.15 if name != "sun" else 0.35),
+            markeredgewidth=0.6 if name != "sun" else 1.0,
+            markersize=core_size,
+            linestyle="None",
+        )
 
+        glow_line_artists[name] = glow_line_artist
         line_artists[name] = line_artist
+        glow_point_artists[name] = glow_point_artist
         point_artists[name] = point_artist
 
-        if positions.size > 0:
-            ax.scatter(positions[0, 0], positions[0, 1], color=colour, s=14, alpha=0.35)
+    legend = ax.legend(
+        loc="upper right",
+        frameon=True,
+        facecolor="#08111f",
+        edgecolor=(1.0, 1.0, 1.0, 0.08),
+        framealpha=0.32,
+    )
+    for text in legend.get_texts():
+        text.set_color("white")
 
-    time_text = ax.text(0.02, 0.98, "", transform=ax.transAxes, ha="left", va="top")
-    ax.legend(loc="best")
+    time_text = ax.text2D(
+        0.02,
+        0.965,
+        "",
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        color="white",
+        fontsize=11,
+    )
 
     def update(frame_number: int) -> list[object]:
         frame_index = frame_indices[frame_number]
@@ -114,15 +277,30 @@ def animate_orbits(
                 start_index = max(0, frame_index - trail_length)
 
             trail = positions[start_index : frame_index + 1]
-            current = positions[frame_index]
+            current = positions[frame_index : frame_index + 1]
+            trail_x, trail_y, trail_z = _split_coordinates(trail)
+            current_x, current_y, current_z = _split_coordinates(current)
 
-            line_artists[name].set_data(trail[:, 0], trail[:, 1])
-            point_artists[name].set_data([current[0]], [current[1]])
+            glow_line_artists[name].set_data(trail_x, trail_y)
+            glow_line_artists[name].set_3d_properties(trail_z)
+            line_artists[name].set_data(trail_x, trail_y)
+            line_artists[name].set_3d_properties(trail_z)
+            glow_point_artists[name].set_data(current_x, current_y)
+            glow_point_artists[name].set_3d_properties(current_z)
+            point_artists[name].set_data(current_x, current_y)
+            point_artists[name].set_3d_properties(current_z)
 
+            updated_artists.append(glow_line_artists[name])
             updated_artists.append(line_artists[name])
+            updated_artists.append(glow_point_artists[name])
             updated_artists.append(point_artists[name])
 
         time_text.set_text(f"t = {results.times[frame_index]:.2f} years")
+        camera_phase = 2.0 * np.pi * frame_number / max(1, len(frame_indices) - 1)
+        ax.view_init(
+            elev=22.0 + 4.0 * np.sin(0.8 * camera_phase),
+            azim=35.0 + frame_number * 0.18,
+        )
         return updated_artists
 
     animation = FuncAnimation(
